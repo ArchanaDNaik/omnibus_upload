@@ -7,6 +7,28 @@
 
 <style>
     /* CSS styles */
+
+    .header {
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px 20px;
+            text-align: center;
+        }
+
+        .header img {
+            width: 70px;
+            height: auto;
+            vertical-align: middle;
+        }
+
+        .header h1 {
+            display: inline-block;
+            margin: 0;
+            vertical-align: middle;
+            color: rgb(0, 2, 0);
+            font-size: 20px;
+            margin-left: 10px;
+        }
+
     body {
         font-family: Arial, sans-serif;
         margin: 0;
@@ -57,11 +79,15 @@
         margin-right: 2%; /* Adjusted margin to create space between boxes */
     }
     .box {
-        border: 1px solid #ddd;
-        padding: 8px;
-        margin-bottom: 10px;
-        background-color: #f2f2f2;
-    }
+    border: 1px solid #ddd; /* Border color */
+    padding: 8px; /* Padding inside the box */
+    margin-bottom: 10px; /* Margin between boxes */
+    background-color: white; /* Set the background color to white */
+    border-radius: 5px; /* Optional: Add rounded corners to the box */
+    min-height: 45px; /* Adjust this value to increase the minimum height of the boxes */
+
+}
+
     .parameter {
         font-weight: bold;
     }
@@ -74,17 +100,35 @@
     .mismatch {
         color: red; /* Make "Mismatch" text red */
     }
+
+    footer {
+    padding: 15px;
+    background-color: black; /* Black background color */
+    color: white; /* White text color */
+    text-align: center; /* Center-align the text */
+    font-weight: bold; /* Make the text bold */
+    /* position: fixed; */
+    bottom: 0;
+    width: 99%; /* Make the footer span the full width of the page */
+}
+
 </style>
 
 
 </head>
 <body>
+
+    <div class="header">
+        <img src="https://pngimg.com/uploads/ibm/ibm_PNG19655.png" alt="IBM Logo" class="logo" onclick="openLink('https://www.ibm.com/in-en')">
+        <h1>Netcool Omnibus</h1>
+    </div>
+
 <div class="container">
     <div class="metrics-container">
-        <h3>Metric Descriptions</h3>
+        <h3>Parameter Descriptions</h3>
         <table>
             <tr>
-                <th>Metric</th>
+                <th>Parameter</th>
                 <th>Description</th>
             </tr>
             <tr>
@@ -134,40 +178,61 @@
         </table>
     </div>
     <div class="report-container">
-        <h2>File Upload and Comparison Report</h2>
-        <input type="file" id="fileInput">
-        <button onclick="handleFile()">Generate Report</button>
+        <h2>GDC HealthCheck Report</h2>
+        <button id="fileButton">Choose File and Generate Report</button>
         <button onclick="downloadAsPdf()">Download PDF</button>
-        <button onclick="clearHistory()">Clear History</button>
         <h3>Current Report</h3>
         <div id="report"></div> <!-- Changed to a div instead of a table -->
-        <h3>History</h3>
-        <table id="history">
-            <tr>
-                <th>Timestamp</th>
-                <th>Result</th>
-            </tr>
-        </table>
-        <div id="chart"></div>
+        
     </div>
+    
 </div>
+<footer>
+    <p><strong>Disclaimer:</strong> The report tries to compare the important parameters to the recommended values that define performance of the system. A match of the values however does not necessarily guarantee that the system is problem-free. It is recommended that a more comprehensive review of the system be done by our SMEs at the GDC.</p>
+</footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
 <script>
     // JavaScript code
-    function handleFile() {
-    var fileInput = document.getElementById('fileInput');
-    var file = fileInput.files[0];
-    var reader = new FileReader();
+    document.getElementById('fileButton').addEventListener('click', function() {
+    // Create a hidden file input element
+    var fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.style.display = 'none'; // Hide the file input element
+    
+    // Add an event listener to handle file selection
+    fileInput.addEventListener('change', function(event) {
+        // Once the file is selected, call the handleFile function
+        handleFile(event.target.files[0]);
+    });
+    
+    // Append the file input element to the body and simulate a click
+    document.body.appendChild(fileInput);
+    fileInput.click();
+});
 
-    reader.onload = function(event) {
-        var contents = event.target.result;
-        var result = parseAndCompare(contents);
-        saveToHistory(result);
-    };
+function handleFile(file) {
+    // Check if a file was provided as an argument
+    if (!file) {
+        // If no file is provided, use the file input element to get the file
+        var fileInput = document.getElementById('fileInput');
+        file = fileInput.files[0];
+    }
 
-    reader.readAsText(file);
+    // Ensure a file was selected
+    if (file) {
+        var reader = new FileReader();
+
+        reader.onload = function(event) {
+            var contents = event.target.result;
+            var result = parseAndCompare(contents);
+            saveToHistory(result);
+        };
+
+        reader.readAsText(file);
+    }
 }
+
 
 function parseAndCompare(contents) {
     var data = JSON.parse(contents); // Parse JSON content
@@ -176,7 +241,7 @@ function parseAndCompare(contents) {
     var expectedValues = {
         "TriggersCount": {expected: "-", comparison: "-"},
         "ProceduresCount": {expected: "-", comparison: "-"},
-        "NetcoolOmnibusVersion": {expected: "Current Version "+"", comparison: "version"},
+        "NetcoolOmnibusVersion": {expected: "8.1.0.5"+"", comparison: "version"},
         "JournalCount": {expected: "<150000", comparison: "less"},
         "DetailCount": {expected: "<120000", comparison: "less"},
         "ProfilingEnabled":  {expected: "TRUE", comparison: "match"},
@@ -252,7 +317,7 @@ function parseAndCompare(contents) {
                     comparison = "Match";
                     matches++;
                 } else {
-                    comparison = "Mismatch";
+                    comparison = "Match";
                 }
                 totalParams++;
             } else {
@@ -265,7 +330,7 @@ function parseAndCompare(contents) {
         data[key] = { value: value, expectedValue: expectedValue, comparison: comparison };
 
         // Append HTML for this parameter to the reportHTML
-        reportHTML += "<div class='box-container'><div class='box'><div class='parameter'>" + key + "</div><div class='value'>" + value + "</div><div class='expected'>" + expectedValue + "</div><div class='comparison " + (comparison === "Match" ? "match" : "mismatch") + "'>" + comparison + "</div></div></div>";
+        reportHTML += "<div class='box-container'><div class='box'><div class='parameter'>" + key + "</div><div class='value'>" +" Current Value:  "+ value + "</div><div class='expected'>" +" Reference Value:  " + expectedValue + "</div><div class='comparison "  +(comparison === "Match" ? "match" : "mismatch") + "'>" + comparison + "</div></div></div>";
     }
 
     // Add row for result and percentage
@@ -337,16 +402,18 @@ function checkVersion(version) {
         var expectedVersionParts = expectedVersion.split('.').map(Number);
 
         // Compare each part of the version number
-        for (var i = 0; i < Math.max(actualVersionParts.length, expectedVersionParts.length); i++) {
-            // If the actual version part is greater than the expected version part, return "Match"
-            if ((actualVersionParts[i] || 0) > (expectedVersionParts[i] || 0)) {
-                return "<span class='match'>" + "Match" + "</span>";
-            }
-            // If the actual version part is less than the expected version part, return "Mismatch"
-            else if ((actualVersionParts[i] || 0) < (expectedVersionParts[i] || 0)) {
-                return "<span class='mismatch'>" + "Mismatch" + "</span>";
-            }
-        }
+        // Compare each part of the version number
+for (var i = 0; i < Math.max(actualVersionParts.length, expectedVersionParts.length); i++) {
+    // If the actual version part is greater than the expected version part, return "Match"
+    if ((actualVersionParts[i] || 0) > (expectedVersionParts[i] || 0)) {
+        return "<span class='match'>" + "Match" + "</span>";
+    }
+    // If the actual version part is less than the expected version part, return "Mismatch"
+    else if ((actualVersionParts[i] || 0) < (expectedVersionParts[i] || 0)) {
+        return "<span class='mismatch'>" + "Mismatch" + "</span>";
+    }
+}
+
 
         // If all parts are equal, return "Match"
         return "<span class='match'>" + "Match" + "</span>";
